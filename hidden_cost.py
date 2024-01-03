@@ -1,29 +1,85 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
+import re
 
 def process_source(source):
-    soup = BeautifulSoup(source, "html.parser")
-    text_elements = soup.find_all(text=True)
-    processed_list = []
+     soup=BeautifulSoup(source,"html.parser")
+     remove_elements=soup.find_all(["script","style","img","link"])
+     for match in remove_elements:
+          match.decompose()
+     text_elements=soup.find_all(string=True)
+     processed_list=[]
+     for element in text_elements:
+             temp=element.text.replace(" ","").replace("\n","")
+             if temp!="":
+                     processed_list.append(temp)
+     return processed_list
 
-    for element in text_elements:
-        temp = element.replace(" ", "").replace("\n", "")
-        if temp != "":
-            processed_list.append(temp)
 
-    return processed_list
 
-def trace(list_):
+common_prefix = ['delivery','subtotal']
+common_names = ['total']
+common_suffix = ['fee', 'amount']
+banned=['address']
+
+
+def prefix_check(string):
+    string = string.lower()
+    for prefix in common_prefix:
+        if string.startswith(prefix):
+            return True
+    return False
+
+
+def contain_check(string):
+    string = string.lower()
+    for name in common_names:
+        if name in string:
+            return True
+    return False
+
+
+def suffix_check(string):
+    string = string.lower()
+    for suffix in common_suffix:
+        if string.endswith(suffix):
+            return True
+    return False
+
+
+def trace(textList):
     return_list = []
     current = 0
-
-    while current < len(list_):
-        if list_[current][0] == "₹":
-            return_list.append(f"{list_[current - 1]} {list_[current]}")
-        current += 1
-
-    return return_list
+    try:
+        while current < len(textList):
+            add = []
+            if prefix_check(textList[current]) or contain_check(textList[current]):
+                while not textList[current].startswith('₹'):
+                    add.append(textList[current])
+                    current += 1
+                add.append(textList[current])
+                while not bool(re.search(r'\d', textList[current])):
+                    current += 1
+                    add.append(textList[current])
+                    
+                #Temp fix
+                if len(" ".join(add))>32:
+                    continue
+                return_list.append(' '.join(add))
+            elif suffix_check(textList[current]):
+                add.append(textList[current - 1])
+                add.append(textList[current])
+                while not bool(re.search(r'\d', textList[current])):
+                    current += 1
+                    add.append(textList[current])
+                if '₹' in ' '.join(add):
+                    return_list.append(' '.join(add))
+            current += 1
+    except:
+        pass
+    finally:
+        return return_list
 
 def find_hidden_costs(url):
     options = Options()
