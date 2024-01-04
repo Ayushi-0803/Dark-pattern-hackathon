@@ -18,10 +18,10 @@ def process_source(source):
 
 
 
-common_prefix = ['delivery','subtotal']
+common_prefix = ['delivery','shipping', 'subtotal']
 common_names = ['total']
 common_suffix = ['fee', 'amount']
-banned=['address']
+banned = ['address']
 
 
 def prefix_check(string):
@@ -62,13 +62,13 @@ def trace(textList):
                 while not bool(re.search(r'\d', textList[current])):
                     current += 1
                     add.append(textList[current])
-                    
-                #Temp fix
-                if len(" ".join(add))>32:
+                # Temp fix
+                if len(" ".join(add)) > 32:
                     continue
                 return_list.append(' '.join(add))
             elif suffix_check(textList[current]):
-                add.append(textList[current - 1])
+                if bool(re.search(r'[a-zA-Z]', textList[current-1])):
+                    add.append(textList[current - 1])
                 add.append(textList[current])
                 while not bool(re.search(r'\d', textList[current])):
                     current += 1
